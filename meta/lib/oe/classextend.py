@@ -9,9 +9,9 @@ def get_packages(d):
     extcls = d.getVar("EXTENDERCLASS")
     return extcls.rename_packages_internal(pkgs)
 
-def get_depends(d):
+def get_depends(varprefix, d):
     extcls = d.getVar("EXTENDERCLASS")
-    return extcls. map_depends_variable("DEPENDS_NONML")
+    return extcls.map_depends_variable(varprefix + "_NONML")
 
 class ClassExtender(object):
     def __init__(self, extname, d):
@@ -99,14 +99,13 @@ class ClassExtender(object):
         for dep in deps:
             newdeps[self.map_depends(dep)] = deps[dep]
 
-        if varname == "DEPENDS":
-            self.d.setVar("DEPENDS_NONML", self.d.getVar("DEPENDS", False))
-            self.d.setVar("DEPENDS", "${@oe.classextend.get_depends(d)}")
+        if not varname.endswith("_NONML"):
+            #if varname == "DEPENDS":
+            self.d.setVar(varname + "_NONML", self.d.getVar(varname, False))
+            self.d.setVar(varname, "${@oe.classextend.get_depends('%s', d)}" % varname)
         ret = bb.utils.join_deps(newdeps, False).replace("EXTENDPKGV", "${EXTENDPKGV}")
         self.d.setVar("EXTENDPKGV", orig)
-        if varname == "DEPENDS_NONML" or varname == "DEPENDS":
-            return ret
-        self.d.setVar(varname, ret)
+        return ret
 
     def map_packagevars(self):
         for pkg in (self.d.getVar("PACKAGES").split() + [""]):
